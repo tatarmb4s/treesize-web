@@ -404,6 +404,10 @@ def create_app() -> Flask:
       </div>
       <button id=\"scanBtn\">Scan</button>
       <span id=\"status\" class=\"muted\"></span>
+      <input id=\"filterByName\" type=\"text\" placeholder=\"Filter by name\"/>
+      <button id=\"selectFilteredBtn\">Select filtered</button>
+      <button id=\"deselectAllBtn\">Deselect</button>
+      <button id=\"deleteSelectedBtn\">Delete selected</button>
     </header>
     <main>
       <table id=\"results\">

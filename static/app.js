@@ -11,11 +11,17 @@
   const debugPanel = document.getElementById('debugPanel');
   const breadcrumb = document.getElementById('breadcrumb');
   const suggestionsBox = document.getElementById('suggestions');
+  const filterInput = document.getElementById('filterByName');
+  const selectFilteredBtn = document.getElementById('selectFilteredBtn');
+  const deselectAllBtn = document.getElementById('deselectAllBtn');
+  const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
   let suggestionItems = [];
   let activeIndex = -1;
 
   let sortKey = 'size';
   let sortOrder = 'desc';
+  let currentRows = [];
+  const selectedPaths = new Set();
 
   function setError(message){
     if(!message){ errorBanner.style.display='none'; errorBanner.textContent=''; return; }
@@ -64,7 +70,8 @@
       });
       if(!res.ok){ const t = await res.text(); throw new Error(t); }
       const data = await res.json();
-      renderRows(data);
+      currentRows = data;
+      applyFilterAndRender();
       statusEl.textContent = `${data.length} items`;
     }catch(e){ statusEl.textContent = 'Error'; setError(String(e)); }
     finally{ scanBtn.disabled = false; }
@@ -74,8 +81,8 @@
     const max = Math.max(1, ...rows.map(r => r.sizeBytes));
     tbody.innerHTML = rows.map(r => (
       `<tr>
-        <td><input type="checkbox" data-path="${r.path}"></td>
-        <td>${r.name}</td>
+        <td><input type="checkbox" data-path="${r.path}" ${selectedPaths.has(r.path)?'checked':''}></td>
+        <td class="name-cell"><span class="icon ${r.isDir?'folder':'file'}"></span><span class="name" data-path="${r.path}">${r.name}</span></td>
         <td>${r.isDir ? 'Folder' : 'File'}</td>
         <td>${formatBytes(r.sizeBytes)}</td>
         <td>${formatBytes(r.allocatedBytes)}</td>
@@ -89,6 +96,34 @@
     tbody.querySelectorAll('button[data-action=delete]').forEach(btn => {
       btn.addEventListener('click', () => del([btn.dataset.path]));
     });
+    tbody.querySelectorAll('input[type=checkbox][data-path]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const p = cb.dataset.path;
+        if(cb.checked){ selectedPaths.add(p); } else { selectedPaths.delete(p); }
+      });
+    });
+    tbody.querySelectorAll('span.name').forEach(el => {
+      el.addEventListener('dblclick', () => {
+        const tr = el.closest('tr');
+        const path = el.getAttribute('data-path');
+        const row = rows.find(r => r.path === path);
+        if(row && row.isDir){
+          const next = path.endsWith('/') ? path : path + '/';
+          setPath(next);
+          scan();
+        }
+      });
+    });
+  }
+
+  function getFilterText(){
+    return (filterInput && filterInput.value || '').toLowerCase();
+  }
+
+  function applyFilterAndRender(){
+    const f = getFilterText();
+    const rendered = f ? currentRows.filter(r => r.name.toLowerCase().includes(f)) : currentRows.slice();
+    renderRows(rendered);
   }
 
   async function del(paths){
@@ -153,6 +188,11 @@
     buildCrumbs(p);
     refreshSuggestions(p);
     validatePath(p).then(ok => { baseEl.classList.toggle('invalid', !ok); });
+    if(window.history && window.history.pushState){
+      const url = new URL(window.location.href);
+      url.searchParams.set('path', p);
+      window.history.pushState({}, '', url.toString());
+    }
   }
 
   function showSuggestions(items){
@@ -244,6 +284,28 @@
   function init(){
     document.querySelectorAll('th.sortable').forEach(th => th.addEventListener('click', onHeaderClick));
     scanBtn.addEventListener('click', scan);
+    if(filterInput){ filterInput.addEventListener('input', applyFilterAndRender); }
+    if(selectFilteredBtn){
+      selectFilteredBtn.addEventListener('click', () => {
+        const f = getFilterText();
+        const toSelect = f ? currentRows.filter(r => r.name.toLowerCase().includes(f)) : currentRows.slice();
+        toSelect.forEach(r => selectedPaths.add(r.path));
+        applyFilterAndRender();
+      });
+    }
+    if(deselectAllBtn){
+      deselectAllBtn.addEventListener('click', () => {
+        selectedPaths.clear();
+        applyFilterAndRender();
+      });
+    }
+    if(deleteSelectedBtn){
+      deleteSelectedBtn.addEventListener('click', () => {
+        if(selectedPaths.size === 0){ setError('No items selected'); return; }
+        del(Array.from(selectedPaths));
+        selectedPaths.clear();
+      });
+    }
     baseEl.addEventListener('keydown', (e) => {
       if(e.key === 'ArrowDown'){
         e.preventDefault();
@@ -270,8 +332,15 @@
         showSuggestions([]);
       }
     });
-    const initial = baseEl.value || '/';
+    const url = new URL(window.location.href);
+    const paramPath = url.searchParams.get('path');
+    const initial = paramPath || baseEl.value || '/';
     setPath(initial);
+    if(window.history && window.history.replaceState){
+      const url = new URL(window.location.href);
+      url.searchParams.set('path', initial);
+      window.history.replaceState({}, '', url.toString());
+    }
     const debugFlag = document.querySelector('meta[name="debug-ui"]');
     if (debugFlag) { loadDebug(); }
   }
