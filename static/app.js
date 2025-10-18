@@ -10,7 +10,9 @@
   const errorBanner = document.getElementById('errorBanner');
   const debugPanel = document.getElementById('debugPanel');
   const breadcrumb = document.getElementById('breadcrumb');
-  const pathSuggestions = document.getElementById('pathSuggestions');
+  const suggestionsBox = document.getElementById('suggestions');
+  let suggestionItems = [];
+  let activeIndex = -1;
 
   let sortKey = 'size';
   let sortOrder = 'desc';
@@ -153,13 +155,59 @@
     validatePath(p).then(ok => { baseEl.classList.toggle('invalid', !ok); });
   }
 
+  function showSuggestions(items){
+    if(!items || items.length === 0){
+      suggestionsBox.style.display = 'none';
+      suggestionsBox.innerHTML = '';
+      suggestionItems = [];
+      activeIndex = -1;
+      return;
+    }
+    suggestionsBox.innerHTML = items.map(it => (
+      `<div class="suggestion-item" data-path="${it.path}"><span class="icon ${it.type==='dir'?'folder':'file'}"></span><span>${it.path}</span></div>`
+    )).join('');
+    suggestionsBox.style.display = 'block';
+    suggestionItems = Array.from(suggestionsBox.querySelectorAll('.suggestion-item'));
+    suggestionItems.forEach((el, idx) => {
+      el.addEventListener('mouseenter', ()=> setActiveIndex(idx));
+      el.addEventListener('click', ()=> acceptActive(idx));
+    });
+  }
+
+  function setActiveIndex(idx){
+    if(activeIndex >= 0 && activeIndex < suggestionItems.length){
+      suggestionItems[activeIndex].classList.remove('active');
+    }
+    activeIndex = idx;
+    if(activeIndex >= 0 && activeIndex < suggestionItems.length){
+      suggestionItems[activeIndex].classList.add('active');
+      suggestionItems[activeIndex].scrollIntoView({ block: 'nearest' });
+    }
+  }
+
+  function acceptActive(idx){
+    if(idx < 0 || idx >= suggestionItems.length) return;
+    const p = suggestionItems[idx].getAttribute('data-path');
+    setPath(p);
+    baseEl.focus();
+    // After accepting, fetch next-level suggestions
+    refreshSuggestions(p);
+  }
+
   async function refreshSuggestions(path){
     const parent = path === '/' ? '/' : path.split('/').slice(0,-1).join('/') || '/';
     try{
       const res = await fetch(`/api/list-dir?path=${encodeURIComponent(parent)}`);
       if(!res.ok) return;
       const data = await res.json();
-      pathSuggestions.innerHTML = data.entries.map(e => `<option value="${parent === '/' ? '/' + e.name : parent + '/' + e.name}">${e.name}</option>`).join('');
+      const items = data.entries.map(e => ({
+        path: parent === '/' ? '/' + e.name : parent + '/' + e.name,
+        type: e.type
+      }));
+      // Filter by typed prefix
+      const val = baseEl.value;
+      const filtered = items.filter(it => it.path.startsWith(val));
+      showSuggestions(filtered);
     }catch(_e){/* ignore */}
   }
 
@@ -173,9 +221,30 @@
   function init(){
     document.querySelectorAll('th.sortable').forEach(th => th.addEventListener('click', onHeaderClick));
     scanBtn.addEventListener('click', scan);
-    baseEl.addEventListener('keydown', (e) => { if(e.key === 'Enter'){ scan(); } });
-    baseEl.addEventListener('input', () => {
-      refreshSuggestions(baseEl.value);
+    baseEl.addEventListener('keydown', (e) => {
+      if(e.key === 'ArrowDown'){
+        e.preventDefault();
+        setActiveIndex(Math.min(suggestionItems.length - 1, activeIndex + 1));
+      } else if(e.key === 'ArrowUp'){
+        e.preventDefault();
+        setActiveIndex(Math.max(-1, activeIndex - 1));
+      } else if(e.key === 'Enter'){
+        if(activeIndex >= 0){
+          e.preventDefault();
+          acceptActive(activeIndex);
+        } else {
+          scan();
+        }
+      } else if(e.key === 'Escape'){
+        showSuggestions([]);
+      }
+    });
+    baseEl.addEventListener('input', () => { refreshSuggestions(baseEl.value); });
+    baseEl.addEventListener('focus', () => { refreshSuggestions(baseEl.value); });
+    document.addEventListener('click', (e) => {
+      if(!suggestionsBox.contains(e.target) && e.target !== baseEl){
+        showSuggestions([]);
+      }
     });
     const initial = baseEl.value || '/';
     setPath(initial);

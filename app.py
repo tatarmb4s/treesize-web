@@ -397,8 +397,10 @@ def create_app() -> Flask:
     <header>
       <label for=\"base\">Base path</label>
       <div id=\"breadcrumb\"></div>
-      <input id=\"base\" type=\"text\" placeholder=\"/home/debber\" list=\"pathSuggestions\"/>
-      <datalist id=\"pathSuggestions\"></datalist>
+      <div id=\"pathInputWrap\" class=\"input-wrap\">
+        <input id=\"base\" type=\"text\" placeholder=\"/home/debber\"/>
+        <div id=\"suggestions\" class=\"suggestions\" style=\"display:none\"></div>
+      </div>
       <button id=\"scanBtn\">Scan</button>
       <span id=\"status\" class=\"muted\"></span>
     </header>
