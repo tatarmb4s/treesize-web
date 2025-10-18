@@ -25,6 +25,9 @@ PORT_VAL=${INPUT_PORT:-5327}
 read -rp "Enable DEBUG_UI (1/0) [1]: " INPUT_DEBUG || true
 DEBUG_VAL=${INPUT_DEBUG:-1}
 
+read -rp "Default base path [/] : " INPUT_DEFAULT_PATH || true
+DEFAULT_PATH_VAL=${INPUT_DEFAULT_PATH:-/}
+
 PWD_INPUT="${INPUT_PWD:-}" HASH_VAL="$(PWD_INPUT="${INPUT_PWD:-}" ./.venv/bin/python - <<'PY'
 import os
 from werkzeug.security import generate_password_hash
@@ -47,6 +50,7 @@ printf "TREESIZE_PASS_HASH=%q\n" "$HASH_VAL" >> "$TARGET_FILE"
 printf "TREESIZE_HOST=%q\n" "$HOST_VAL" >> "$TARGET_FILE"
 printf "TREESIZE_PORT=%q\n" "$PORT_VAL" >> "$TARGET_FILE"
 printf "DEBUG_UI=%q\n" "$DEBUG_VAL" >> "$TARGET_FILE"
+printf "TREESIZE_DEFAULT_PATH=%q\n" "$DEFAULT_PATH_VAL" >> "$TARGET_FILE"
 
 echo ".env written"
 

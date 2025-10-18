@@ -12,7 +12,7 @@ python3 -m venv .venv
 ```bash
 cp env.example .env
 ```
-2. Edit `.env` to set `TREESIZE_USER`, `TREESIZE_PASS_HASH`, host/port.
+2. Edit `.env` to set `TREESIZE_USER`, `TREESIZE_PASS_HASH`, host/port, and optional `TREESIZE_DEFAULT_PATH` (default is `/`).
 3. `dev.sh` will auto-load `.env` and `.env.local`.
 
 Or generate interactively:
@@ -33,7 +33,7 @@ export TREESIZE_PASS_HASH="$(./.venv/bin/python - <<'PY'
 from werkzeug.security import generate_password_hash;print(generate_password_hash('change_me_now'))
 PY
 )"
-export TREESIZE_HOST=0.0.0.0 TREESIZE_PORT=5327 DEBUG_UI=1
+export TREESIZE_HOST=0.0.0.0 TREESIZE_PORT=5327 DEBUG_UI=1 TREESIZE_DEFAULT_PATH=/
 ./.venv/bin/python app.py
 ```
 

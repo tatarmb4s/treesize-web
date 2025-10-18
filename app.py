@@ -347,7 +347,7 @@ def create_app() -> Flask:
     <div id=\"errorBanner\"></div>
     <header>
       <label for=\"base\">Base path</label>
-      <input id=\"base\" type=\"text\" placeholder=\"/home/debber\"/>
+      <input id=\"base\" type=\"text\" placeholder=\"/home/debber\" value=\"%%DEFAULT_PATH%%\"/>
       <button id=\"scanBtn\">Scan</button>
       <span id=\"status\" class=\"muted\"></span>
     </header>
@@ -374,7 +374,8 @@ def create_app() -> Flask:
   </body>
 </html>
 """
-            html = html.replace("%%NONCE%%", nonce).replace("%%CSRF%%", json.dumps(csrf))
+            default_path = os.environ.get("TREESIZE_DEFAULT_PATH", "/")
+            html = html.replace("%%NONCE%%", nonce).replace("%%CSRF%%", json.dumps(csrf)).replace("%%DEFAULT_PATH%%", default_path)
             resp = make_response(html)
             resp.set_cookie("ts_csrf", csrf, secure=False, httponly=False, samesite="Strict")
             resp.headers["Content-Security-Policy"] = (
@@ -383,6 +384,7 @@ def create_app() -> Flask:
             )
             return resp
         debug_meta = '<meta name="debug-ui" content="1">' if debug_ui else ''
+        default_path = os.environ.get("TREESIZE_DEFAULT_PATH", "/")
         html = """
 <!doctype html>
 <html lang=\"en\">
@@ -399,7 +401,7 @@ def create_app() -> Flask:
       <label for=\"base\">Base path</label>
       <div id=\"breadcrumb\"></div>
       <div id=\"pathInputWrap\" class=\"input-wrap\">
-        <input id=\"base\" type=\"text\" placeholder=\"/home/debber\"/>
+        <input id=\"base\" type=\"text\" placeholder=\"/home/debber\" value=\"%%DEFAULT_PATH%%\"/>
         <div id=\"suggestions\" class=\"suggestions\" style=\"display:none\"></div>
       </div>
       <button id=\"scanBtn\">Scan</button>
@@ -433,7 +435,7 @@ def create_app() -> Flask:
   </body>
 </html>
 """
-        html = html.replace("%%DEBUG_META%%", debug_meta)
+        html = html.replace("%%DEBUG_META%%", debug_meta).replace("%%DEFAULT_PATH%%", default_path)
         resp = make_response(html)
         resp.set_cookie("ts_csrf", csrf, secure=False, httponly=False, samesite="Strict")
         if debug_ui:

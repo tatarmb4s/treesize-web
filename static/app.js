@@ -22,6 +22,7 @@
   let sortOrder = 'desc';
   let currentRows = [];
   const selectedPaths = new Set();
+  let allowHistoryUpdates = false;
 
   function setError(message){
     if(!message){ errorBanner.style.display='none'; errorBanner.textContent=''; return; }
@@ -188,7 +189,7 @@
     buildCrumbs(p);
     refreshSuggestions(p);
     validatePath(p).then(ok => { baseEl.classList.toggle('invalid', !ok); });
-    if(window.history && window.history.pushState){
+    if(allowHistoryUpdates && window.history && window.history.pushState){
       const url = new URL(window.location.href);
       url.searchParams.set('path', p);
       window.history.pushState({}, '', url.toString());
@@ -333,14 +334,17 @@
       }
     });
     const url = new URL(window.location.href);
-    const paramPath = url.searchParams.get('path');
-    const initial = paramPath || baseEl.value || '/';
+    const hadParam = url.searchParams.has('path');
+    const paramPath = hadParam ? url.searchParams.get('path') : null;
+    const initial = (hadParam && paramPath) ? paramPath : (baseEl.value || '/');
     setPath(initial);
-    if(window.history && window.history.replaceState){
-      const url = new URL(window.location.href);
-      url.searchParams.set('path', initial);
-      window.history.replaceState({}, '', url.toString());
+    scan();
+    if(hadParam && window.history && window.history.replaceState){
+      const u = new URL(window.location.href);
+      u.searchParams.set('path', initial);
+      window.history.replaceState({}, '', u.toString());
     }
+    allowHistoryUpdates = true;
     const debugFlag = document.querySelector('meta[name="debug-ui"]');
     if (debugFlag) { loadDebug(); }
   }
