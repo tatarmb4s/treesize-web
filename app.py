@@ -382,14 +382,15 @@ def create_app() -> Flask:
                 "img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
             )
             return resp
-        html = f"""
+        debug_meta = '<meta name="debug-ui" content="1">' if debug_ui else ''
+        html = """
 <!doctype html>
 <html lang=\"en\">
   <head>
     <meta charset=\"utf-8\">
     <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
     <title>TreeSize Web</title>
-    {('<meta name=\\"debug-ui\\" content=\\"1\\">' if debug_ui else '')}
+    %%DEBUG_META%%
     <link rel=\"stylesheet\" href=\"/static/app.css\"> 
   </head>
   <body>
@@ -428,6 +429,7 @@ def create_app() -> Flask:
   </body>
 </html>
 """
+        html = html.replace("%%DEBUG_META%%", debug_meta)
         resp = make_response(html)
         resp.set_cookie("ts_csrf", csrf, secure=False, httponly=False, samesite="Strict")
         if debug_ui:

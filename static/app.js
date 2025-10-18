@@ -252,6 +252,7 @@
         e.preventDefault();
         setActiveIndex(Math.max(-1, activeIndex - 1));
       } else if(e.key === 'Enter'){
+        if(e.ctrlKey){ e.preventDefault(); scan(); return; }
         e.preventDefault();
         if(activeIndex >= 0){
           acceptActive(activeIndex);
