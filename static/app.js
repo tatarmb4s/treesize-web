@@ -164,7 +164,7 @@
       return;
     }
     suggestionsBox.innerHTML = items.map(it => (
-      `<div class="suggestion-item" data-path="${it.path}"><span class="icon ${it.type==='dir'?'folder':'file'}"></span><span>${it.path}</span></div>`
+      `<div class="suggestion-item" data-path="${it.path}" data-type="${it.type}"><span class="icon ${it.type==='dir'?'folder':'file'}"></span><span>${it.path}</span></div>`
     )).join('');
     suggestionsBox.style.display = 'block';
     suggestionItems = Array.from(suggestionsBox.querySelectorAll('.suggestion-item'));
@@ -187,11 +187,34 @@
 
   function acceptActive(idx){
     if(idx < 0 || idx >= suggestionItems.length) return;
-    const p = suggestionItems[idx].getAttribute('data-path');
-    setPath(p);
+    const el = suggestionItems[idx];
+    const p = el.getAttribute('data-path');
+    const t = el.getAttribute('data-type');
+    const isDir = t === 'dir';
+    const pNext = isDir && p !== '/' ? (p.endsWith('/') ? p : p + '/') : p;
+    setPath(pNext);
     baseEl.focus();
-    // After accepting, fetch next-level suggestions
-    refreshSuggestions(p);
+    if(isDir){
+      refreshSuggestions(pNext);
+    } else {
+      showSuggestions([]);
+    }
+  }
+
+  async function tryAcceptTyped(){
+    const val = baseEl.value.trim();
+    if(!val){ return false; }
+    try{
+      const res = await fetch(`/api/list-dir?path=${encodeURIComponent(val)}`);
+      if(res.ok){
+        const withSlash = val === '/' ? '/' : (val.endsWith('/') ? val : val + '/');
+        setPath(withSlash);
+        baseEl.focus();
+        refreshSuggestions(withSlash);
+        return true;
+      }
+    }catch(_e){ /* ignore */ }
+    return false;
   }
 
   async function refreshSuggestions(path){
@@ -229,11 +252,11 @@
         e.preventDefault();
         setActiveIndex(Math.max(-1, activeIndex - 1));
       } else if(e.key === 'Enter'){
+        e.preventDefault();
         if(activeIndex >= 0){
-          e.preventDefault();
           acceptActive(activeIndex);
         } else {
-          scan();
+          tryAcceptTyped().then(ok => { if(!ok) scan(); });
         }
       } else if(e.key === 'Escape'){
         showSuggestions([]);
