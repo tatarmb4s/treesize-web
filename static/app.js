@@ -10,11 +10,13 @@
   const errorBanner = document.getElementById('errorBanner');
   const debugPanel = document.getElementById('debugPanel');
   const breadcrumb = document.getElementById('breadcrumb');
+  const goUpBtn = document.getElementById('goUpBtn');
   const suggestionsBox = document.getElementById('suggestions');
   const filterInput = document.getElementById('filterByName');
   const selectFilteredBtn = document.getElementById('selectFilteredBtn');
   const deselectAllBtn = document.getElementById('deselectAllBtn');
   const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+  const themeSelect = document.getElementById('themeSelect');
   let suggestionItems = [];
   let activeIndex = -1;
 
@@ -147,7 +149,7 @@
     const rootBtn = document.createElement('span');
     rootBtn.className = 'crumb';
     rootBtn.innerHTML = `<span class="icon">📁</span><a href="#">/</a>`;
-    rootBtn.addEventListener('click', (e)=>{ e.preventDefault(); setPath('/'); });
+    rootBtn.addEventListener('click', (e)=>{ e.preventDefault(); setPath('/'); scan(); });
     breadcrumb.appendChild(rootBtn);
     for(const part of parts){
       if(!part) continue;
@@ -155,27 +157,13 @@
       const full = '/' + accum.join('/');
       const span = document.createElement('span');
       span.className = 'crumb';
-      span.innerHTML = `<span class="icon">📁</span><a href="#">${part}</a>`;
-      span.addEventListener('click', (e)=>{ e.preventDefault(); setPath(full); });
-      const sel = document.createElement('select');
-      sel.className = 'crumb-select';
-      sel.addEventListener('change', ()=>{ if(sel.value) setPath(sel.value); });
-      populateSiblings(full, sel);
-      span.appendChild(sel);
+      span.innerHTML = `<i class="fa-solid fa-chevron-right sep"></i><span class="icon">📁</span><a href="#">${part}</a>`;
+      span.addEventListener('click', (e)=>{ e.preventDefault(); setPath(full); scan(); });
       breadcrumb.appendChild(span);
     }
   }
 
-  async function populateSiblings(currentPath, selectEl){
-    const parent = currentPath === '/' ? '/' : currentPath.split('/').slice(0,-1).join('/') || '/';
-    try{
-      const res = await fetch(`/api/list-dir?path=${encodeURIComponent(parent)}`);
-      if(!res.ok) return;
-      const data = await res.json();
-      const dirs = data.entries.filter(e => e.type === 'dir');
-      selectEl.innerHTML = '<option value="">…</option>' + dirs.map(d => `<option value="${parent === '/' ? '/' + d.name : parent + '/' + d.name}">${d.name}</option>`).join('');
-    }catch(_e){/* ignore */}
-  }
+  // removed sibling dropdowns
 
   async function validatePath(path){
     try{
@@ -285,6 +273,16 @@
   function init(){
     document.querySelectorAll('th.sortable').forEach(th => th.addEventListener('click', onHeaderClick));
     scanBtn.addEventListener('click', scan);
+    if(goUpBtn){
+      goUpBtn.addEventListener('click', () => {
+        const cur = baseEl.value || '/';
+        if(cur === '/') return;
+        const parent = cur.replace(/\/?$/, '').split('/').slice(0,-1).join('/') || '/';
+        const normalized = parent === '/' ? '/' : parent + '/';
+        setPath(normalized);
+        scan();
+      });
+    }
     if(filterInput){ filterInput.addEventListener('input', applyFilterAndRender); }
     if(selectFilteredBtn){
       selectFilteredBtn.addEventListener('click', () => {
@@ -347,6 +345,34 @@
     allowHistoryUpdates = true;
     const debugFlag = document.querySelector('meta[name="debug-ui"]');
     if (debugFlag) { loadDebug(); }
+    // Theme handling: system/light/dark with persistence
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    function applyThemePreference(pref){
+      document.documentElement.classList.remove('dark','theme-light','theme-dark');
+      if(pref === 'light'){
+        document.documentElement.classList.add('theme-light');
+      } else if(pref === 'dark'){
+        document.documentElement.classList.add('dark','theme-dark');
+      } else { // system
+        if(mq.matches){ document.documentElement.classList.add('dark','theme-dark'); }
+        else { document.documentElement.classList.add('theme-light'); }
+      }
+    }
+    // Default to dark to avoid white flash
+    const saved = localStorage.getItem('ts_theme_pref') || 'dark';
+    if(themeSelect){ themeSelect.value = saved; }
+    applyThemePreference(saved);
+    mq.addEventListener('change', () => {
+      const cur = (themeSelect && themeSelect.value) || 'system';
+      if(cur === 'system') applyThemePreference('system');
+    });
+    if(themeSelect){
+      themeSelect.addEventListener('change', () => {
+        const val = themeSelect.value;
+        localStorage.setItem('ts_theme_pref', val);
+        applyThemePreference(val);
+      });
+    }
   }
 
   init();

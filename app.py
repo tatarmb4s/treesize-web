@@ -336,12 +336,13 @@ def create_app() -> Flask:
         if lite:
             html = """
 <!doctype html>
-<html lang=\"en\">
+<html class=\"dark theme-dark\" lang=\"en\">
   <head>
     <meta charset=\"utf-8\">
     <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
+    <meta name=\"color-scheme\" content=\"dark light\">
     <title>TreeSize Web</title>
-    <style nonce=\"%%NONCE%%\">body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,'Helvetica Neue',Arial,'Noto Sans','Liberation Sans',sans-serif;margin:0;background:#f7f7f8;color:#111}header{display:flex;align-items:center;gap:12px;padding:12px 16px;background:#fff;border-bottom:1px solid #e5e7eb;position:sticky;top:0;z-index:1}input[type=text]{width:520px;max-width:70vw;padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px}button{padding:8px 12px;border:1px solid #0ea5e9;background:#0ea5e9;color:#fff;border-radius:6px;cursor:pointer}button:disabled{opacity:.5;cursor:not-allowed}main{padding:12px 16px}table{width:100%;border-collapse:collapse;background:#fff}th,td{padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:left;font-size:14px}th.sortable{cursor:pointer;user-select:none}.bar{height:10px;background:#e5e7eb;border-radius:4px;position:relative}.bar>span{position:absolute;left:0;top:0;bottom:0;background:#10b981;border-radius:4px}.muted{color:#6b7280;font-size:12px}#errorBanner{display:none;background:#fee2e2;color:#991b1b;padding:8px 12px;border-bottom:1px solid #fecaca}</style>
+    <style nonce=\"%%NONCE%%\">body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,'Helvetica Neue',Arial,'Noto Sans','Liberation Sans',sans-serif;margin:0;background:#0b1220;color:#e5e7eb}header{display:flex;align-items:center;gap:12px;padding:12px 16px;background:#111827;border-bottom:1px solid #1f2937;position:sticky;top:0;z-index:1}input[type=text]{width:520px;max-width:70vw;padding:8px 10px;border:1px solid #334155;border-radius:6px;background:rgba(255,255,255,0.06);color:#e5e7eb}button{padding:8px 12px;border:1px solid #0ea5e9;background:#0ea5e9;color:#fff;border-radius:6px;cursor:pointer}button:disabled{opacity:.5;cursor:not-allowed}main{padding:12px 16px}table{width:100%;border-collapse:collapse;background:#0f172a;color:#e5e7eb}th,td{padding:8px 10px;border-bottom:1px solid #1f2937;text-align:left;font-size:14px}th.sortable{cursor:pointer;user-select:none}.bar{height:10px;background:#1f2937;border-radius:4px;position:relative}.bar>span{position:absolute;left:0;top:0;bottom:0;background:#10b981;border-radius:4px}.muted{color:#94a3b8;font-size:12px}#errorBanner{display:none;background:#fee2e2;color:#991b1b;padding:8px 12px;border-bottom:1px solid #fecaca}</style>
   </head>
   <body>
     <div id=\"errorBanner\"></div>
@@ -387,29 +388,44 @@ def create_app() -> Flask:
         default_path = os.environ.get("TREESIZE_DEFAULT_PATH", "/")
         html = """
 <!doctype html>
-<html lang=\"en\">
+<html class=\"dark theme-dark\" lang=\"en\">
   <head>
     <meta charset=\"utf-8\">
     <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
+    <meta name=\"color-scheme\" content=\"dark light\">
     <title>TreeSize Web</title>
     %%DEBUG_META%%
     <link rel=\"stylesheet\" href=\"/static/app.css\"> 
+    <script src=\"https://kit.fontawesome.com/6e70ed4942.js\" crossorigin=\"anonymous\"></script>
   </head>
   <body>
     <div id=\"errorBanner\"></div>
-    <header>
-      <label for=\"base\">Base path</label>
+    <header class=\"glass\">
       <div id=\"breadcrumb\"></div>
-      <div id=\"pathInputWrap\" class=\"input-wrap\">
-        <input id=\"base\" type=\"text\" placeholder=\"/home/debber\" value=\"%%DEFAULT_PATH%%\"/>
-        <div id=\"suggestions\" class=\"suggestions\" style=\"display:none\"></div>
+      <div class=\"path-row\">
+        <button id=\"goUpBtn\" title=\"Up one folder\">⬆️ Up</button>
+        <div id=\"pathInputWrap\" class=\"input-wrap\">
+          <input id=\"base\" type=\"text\" placeholder=\"/home/debber\" value=\"%%DEFAULT_PATH%%\"/>
+          <div id=\"suggestions\" class=\"suggestions\" style=\"display:none\"></div>
+        </div>
+        <button id=\"scanBtn\">Scan</button>
+        <span id=\"status\" class=\"muted\"></span>
       </div>
-      <button id=\"scanBtn\">Scan</button>
-      <span id=\"status\" class=\"muted\"></span>
-      <input id=\"filterByName\" type=\"text\" placeholder=\"Filter by name\"/>
-      <button id=\"selectFilteredBtn\">Select filtered</button>
-      <button id=\"deselectAllBtn\">Deselect</button>
-      <button id=\"deleteSelectedBtn\">Delete selected</button>
+      <div class=\"controls-row\"> 
+        <div class=\"controls-left\"> 
+          <input id=\"filterByName\" type=\"text\" placeholder=\"Filter by name\"/>
+          <button id=\"selectFilteredBtn\">Select filtered</button>
+          <button id=\"deselectAllBtn\">Deselect</button>
+          <button id=\"deleteSelectedBtn\">Delete selected</button>
+        </div>
+        <div class=\"controls-right\"> 
+          <select id=\"themeSelect\" title=\"Theme\"> 
+            <option value=\"system\">System</option>
+            <option value=\"light\">Light</option>
+            <option value=\"dark\">Dark</option>
+          </select>
+        </div>
+      </div>
     </header>
     <main>
       <table id=\"results\">
@@ -440,12 +456,18 @@ def create_app() -> Flask:
         resp.set_cookie("ts_csrf", csrf, secure=False, httponly=False, samesite="Strict")
         if debug_ui:
             resp.headers["Content-Security-Policy"] = (
-                "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
+                "default-src 'self'; "
+                "script-src 'self' 'unsafe-inline' https://kit.fontawesome.com; "
+                "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://kit.fontawesome.com https://ka-f.fontawesome.com; "
+                "font-src 'self' https://cdnjs.cloudflare.com https://kit.fontawesome.com https://ka-f.fontawesome.com data:; "
                 "img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
             )
         else:
             resp.headers["Content-Security-Policy"] = (
-                "default-src 'self'; script-src 'self'; style-src 'self'; "
+                "default-src 'self'; "
+                "script-src 'self' https://kit.fontawesome.com; "
+                "style-src 'self' https://cdnjs.cloudflare.com https://kit.fontawesome.com https://ka-f.fontawesome.com; "
+                "font-src 'self' https://cdnjs.cloudflare.com https://kit.fontawesome.com https://ka-f.fontawesome.com data:; "
                 "img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
             )
         return resp
