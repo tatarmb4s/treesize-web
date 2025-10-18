@@ -1,0 +1,13 @@
+---
+description: Rules for this repo
+globs:
+alwaysApply: true
+---
+  - Use type hints and expressive names across all code
+  - Do not add inline comments; use docstrings for documentation
+  - Follow clean code practices and small, focused functions
+  - Prefer explicit error handling and input validation
+  - Keep external dependencies minimal
+  - Default server port is 5327
+
+
