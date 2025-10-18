@@ -20,6 +20,8 @@ th.sortable{cursor:pointer;user-select:none}
 .crumb>button{padding:2px 6px;background:transparent;border:1px solid #cbd5e1;color:#111;border-radius:4px}
 .crumb-select{max-width:240px}
 .icon{display:inline-block;width:16px}
+.icon.folder::before{content:"📁"}
+.icon.file::before{content:"📄"}
 .invalid{outline:2px solid #ef4444}
 #debugPanel{margin-top:12px;padding:8px 10px;border:1px dashed #cbd5e1;background:#fff;border-radius:6px;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;font-size:12px}
 

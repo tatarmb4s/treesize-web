@@ -69,6 +69,27 @@ def read_env_text(name: str, default: Optional[str] = None) -> str:
     return value
 
 
+def load_env_file(path: str = ".env") -> None:
+    """Load environment variables from a .env file if present."""
+    try:
+        if not os.path.isfile(path):
+            return
+        with open(path, "r", encoding="utf-8") as f:
+            for raw in f:
+                line = raw.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if "=" not in line:
+                    continue
+                key, val = line.split("=", 1)
+                key = key.strip()
+                val = val.strip().strip("'\"")
+                if key and key not in os.environ:
+                    os.environ[key] = val
+    except Exception:
+        pass
+
+
 def get_client_identity() -> str:
     """Return the remote IP address string."""
     return request.remote_addr or "unknown"
@@ -287,6 +308,7 @@ def sort_items(items: List[Dict[str, Any]], key: str, order: str) -> List[Dict[s
 
 def create_app() -> Flask:
     """Create and configure the Flask application instance."""
+    load_env_file()
     app = Flask(__name__)
     app_logger = configure_logging()
     limiter = RateLimiter(capacity=40, refill_per_second=10.0)

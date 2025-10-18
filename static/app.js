@@ -173,6 +173,7 @@
   function init(){
     document.querySelectorAll('th.sortable').forEach(th => th.addEventListener('click', onHeaderClick));
     scanBtn.addEventListener('click', scan);
+    baseEl.addEventListener('keydown', (e) => { if(e.key === 'Enter'){ scan(); } });
     baseEl.addEventListener('input', () => {
       refreshSuggestions(baseEl.value);
     });

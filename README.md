@@ -7,6 +7,19 @@ python3 -m venv .venv
 ./.venv/bin/pip install -r requirements.txt
 ```
 
+### Configuration via .env
+1. Copy example to working file:
+```bash
+cp env.example .env
+```
+2. Edit `.env` to set `TREESIZE_USER`, `TREESIZE_PASS_HASH`, host/port.
+3. `dev.sh` will auto-load `.env` and `.env.local`.
+
+Or generate interactively:
+```bash
+./gen-env.sh
+```
+
 ### Run in development (no systemd)
 ```bash
 ./dev.sh
